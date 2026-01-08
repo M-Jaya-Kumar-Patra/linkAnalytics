@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/db";
 import Link from "@/models/Link";
 import { generateSlug } from "@/lib/slug";
 
+
 export async function POST(req) {
   try {
     // 🔐 Check login
@@ -60,6 +61,9 @@ export async function POST(req) {
   }
 }
 
+
+import Click from "@/models/Click.js"; // ✅ THIS IS YOUR ANALYTICS MODEL
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -72,11 +76,29 @@ export async function GET() {
 
     await connectDB();
 
+    // 1️⃣ Fetch user links
     const links = await Link.find({
       userId: session.user.id
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return NextResponse.json({ links });
+    // 2️⃣ Attach click count
+    const linksWithClicks = await Promise.all(
+      links.map(async (link) => {
+        const clicks = await Click.countDocuments({
+          slug: link.slug
+        });
+
+        return {
+          ...link,
+          clicks
+        };
+      })
+    );
+
+    // 3️⃣ Send response
+    return NextResponse.json({ links: linksWithClicks });
   } catch (err) {
     console.error("Fetch links error:", err);
     return NextResponse.json(

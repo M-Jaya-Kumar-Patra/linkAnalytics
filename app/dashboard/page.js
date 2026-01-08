@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import DashboardClient from "./DashboardClient";
+import Navbar from "@/components/Navbar";
+
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -12,5 +14,10 @@ export default async function DashboardPage() {
     redirect("/auth"); // ⛔ BLOCK UNAUTHENTICATED USERS
   }
 
-  return <DashboardClient />;
+  return (
+    <>
+    <Navbar />
+    <DashboardClient />
+    </>
+  )
 }

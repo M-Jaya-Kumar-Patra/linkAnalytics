@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
+import KpiCards from "@/components/KpiCards";
 
 export default function DashboardClient() {
   const [url, setUrl] = useState("");
@@ -20,7 +20,7 @@ export default function DashboardClient() {
     });
 
     const data = await res.json();
-    setLinks([data.link, ...links]);
+    setLinks(prev => [data.link, ...prev]);
     setUrl("");
     setLoading(false);
   }
@@ -35,108 +35,161 @@ export default function DashboardClient() {
   }, []);
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: 20 }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: "600" }}>Dashboard</h1>
-          <p style={{ color: "#555" }}>Create and track your links</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+
+        {/* ===== PAGE TITLE ===== */}
+        <div className="mb-4">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Dashboard
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage links and track performance
+          </p>
         </div>
 
-        <button
-          onClick={() => signOut({ callbackUrl: "/auth" })}
-          style={logoutButtonStyle}
-        >
-          Logout
-        </button>
-      </div>
+        {/* ===== TOP GRID ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
 
-      {/* Create Link */}
-      <div style={cardStyle}>
-        <h3>Create a new link</h3>
-        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-          <input
-            placeholder="https://example.com"
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            style={inputStyle}
-          />
-          <button onClick={createLink} style={buttonStyle}>
-            {loading ? "Creating..." : "Create"}
-          </button>
-        </div>
-      </div>
+          {/* CREATE LINK */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <h3 className="text-md font-semibold text-gray-900">
+              Create a new link
+            </h3>
 
-      {/* Links */}
-      <h2 style={{ marginTop: 40 }}>Your Links</h2>
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+              <input
+                placeholder="https://example.com"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                className="
+                  flex-1
+                  px-4 py-2.5
+                  rounded-lg
+                  border border-gray-300
+                  text-sm
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-blue-500
+                "
+              />
 
-      {links.map(link => (
-        <div key={link._id} style={linkCardStyle}>
-          <div>
-            <a href={`/l/${link.slug}`} target="_blank">
-              /l/{link.slug}
-            </a>
-            <p style={{ fontSize: 13, color: "#777" }}>{link.targetUrl}</p>
+              <button
+                onClick={createLink}
+                className="
+                  px-6 py-2.5
+                  rounded-lg
+                  text-sm
+                  font-medium
+                  text-white
+                  bg-blue-600
+                  hover:bg-blue-700
+                  transition
+                "
+              >
+                {loading ? "Creating..." : "Create"}
+              </button>
+            </div>
           </div>
 
-          <a href={`/dashboard/${link.slug}`}>
-            View analytics →
-          </a>
+          {/* KPI CARDS */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <KpiCards />
+          </div>
         </div>
-      ))}
+
+        {/* ===== TOP LINKS ===== */}
+        <div className="mt-5 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+            <h2 className="text-lg font-bold text-gray-900">
+              Link Library
+            </h2>
+            <button className="text-gray-600 hover:text-gray-600 text-lg">
+              Total links created: <span className="text-slate-900 font-bold">{links.length}</span> 
+            </button>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  <th className="px-6 py-3 text-left font-medium">
+                    Short Link
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium">
+                    Original URL
+                  </th>
+                  <th className="px-6 py-3 text-right font-medium">
+                    Clicks
+                  </th>
+                  <th className="px-6 py-3"></th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y">
+                {links.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="4"
+                      className="px-6 py-10 text-center text-sm text-gray-500"
+                    >
+                      No links created yet
+                    </td>
+                  </tr>
+                )}
+
+                {links.map(link => (
+                  <tr
+                    key={link._id}
+                    className="hover:bg-gray-50 transition"
+                  >
+                    <td className="px-6 py-3 font-medium text-gray-900">
+                      <a
+                        href={`/l/${link.slug}`}
+                        target="_blank"
+                        className="hover:underline"
+                      >
+                        LinkAnalytics.app/{link.slug}
+                      </a>
+                    </td>
+
+                    <td className="px-6 py-3 text-gray-500 max-w-[360px] truncate">
+                      {link.targetUrl}
+                    </td>
+
+                    <td className="px-6 py-3 text-right font-medium text-gray-700">
+                      {link.clicks || 0}
+                    </td>
+
+                    <td className="px-6 py-3 text-right">
+                      <a
+                        href={`/dashboard/${link.slug}`}
+                        className="
+                          inline-flex
+                          items-center
+                          px-3 py-1.5
+                          text-xs
+                          font-medium
+                          text-blue-600
+                          bg-blue-50
+                          rounded-md
+                          hover:bg-blue-100
+                        "
+                      >
+                        View Analytics →
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }
-
-/* styles stay same */
-
-const cardStyle = {
-  border: "1px solid #e5e7eb",
-  borderRadius: 10,
-  padding: 20,
-  background: "#fff"
-};
-
-const linkCardStyle = {
-  border: "1px solid #e5e7eb",
-  borderRadius: 10,
-  padding: 16,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 12,
-  background: "#fff"
-};
-
-const inputStyle = {
-  flex: 1,
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: "1px solid #d1d5db",
-  fontSize: 14
-};
-
-const buttonStyle = {
-  padding: "10px 18px",
-  borderRadius: 8,
-  background: "#2563eb",
-  color: "#fff",
-  border: "none",
-  cursor: "pointer"
-};
-
-const analyticsBtnStyle = {
-  color: "#2563eb",
-  fontWeight: 500,
-  textDecoration: "none"
-};
-
-const logoutButtonStyle = {
-  padding: "8px 14px",
-  borderRadius: 8,
-  background: "#ef4444", // red
-  color: "#fff",
-  border: "none",
-  cursor: "pointer",
-  fontSize: 14
-};
