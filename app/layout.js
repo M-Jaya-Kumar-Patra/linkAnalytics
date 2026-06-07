@@ -32,18 +32,6 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
-
-        <p className="text-xs text-gray-500 text-center my-6">
-          Designed and developed by{" "}
-          <a
-            href="https://jaya-portfolio-five.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline font-medium"
-          >
-            Jaya Kumar
-          </a>
-        </p>
       </body>
     </html>
   );

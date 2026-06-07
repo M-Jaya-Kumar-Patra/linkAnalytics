@@ -1,36 +1,48 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/authOptions";
 import { connectDB } from "@/lib/db";
 import Click from "@/models/Click";
+import Link from "@/models/Link";
 
 export async function GET(req, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { slug } = await params;
 
     await connectDB();
 
-    const clicks = await Click.find({ slug: slug });
+    const link = await Link.findOne({
+      slug,
+      userId: session.user.id
+    }).lean();
 
+    if (!link) {
+      return NextResponse.json({ error: "Link not found" }, { status: 404 });
+    }
+
+    const clicks = await Click.find({ slug }).lean();
     const totalClicks = clicks.length;
+    const uniqueVisitors = new Set(clicks.map((click) => click.visitorId)).size;
 
-    const uniqueVisitors = new Set(
-      clicks.map(c => c.visitorId)
-    ).size;
-
-    const deviceCount = clicks.reduce((acc, c) => {
-      acc[c.device] = (acc[c.device] || 0) + 1;
+    const deviceCount = clicks.reduce((acc, click) => {
+      acc[click.device] = (acc[click.device] || 0) + 1;
       return acc;
     }, {});
 
-    const referrerCount = clicks.reduce((acc, c) => {
-      acc[c.referrer] = (acc[c.referrer] || 0) + 1;
+    const referrerCount = clicks.reduce((acc, click) => {
+      acc[click.referrer] = (acc[click.referrer] || 0) + 1;
       return acc;
     }, {});
 
-    // 📅 Daily clicks (last 7 days)
     const dailyMap = {};
-
-    clicks.forEach(c => {
-      const day = new Date(c.createdAt).toISOString().slice(0, 10);
+    clicks.forEach((click) => {
+      const day = new Date(click.createdAt).toISOString().slice(0, 10);
       dailyMap[day] = (dailyMap[day] || 0) + 1;
     });
 
@@ -39,18 +51,19 @@ export async function GET(req, { params }) {
       .sort((a, b) => a.date.localeCompare(b.date));
 
     return NextResponse.json({
+      link: {
+        slug: link.slug,
+        targetUrl: link.targetUrl,
+        createdAt: link.createdAt
+      },
       totalClicks,
       uniqueVisitors,
       deviceCount,
       referrerCount,
       dailyClicks
     });
-
   } catch (err) {
     console.error("Analytics error:", err);
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

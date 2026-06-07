@@ -1,172 +1,231 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { use } from "react";
-import { ArrowLeft, MousePointerClick, Users } from "lucide-react";
 import Link from "next/link";
+import { use, useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  ExternalLink,
+  Link2,
+  MousePointerClick,
+  Users
+} from "lucide-react";
 
 import ClickLineChart from "@/components/LineChart";
 import SimplePieChart from "@/components/PieChart";
 
 export default function AnalyticsPage({ params }) {
   const { slug } = use(params);
-
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function fetchAnalytics() {
       const res = await fetch(`/api/analytics/${slug}`);
       const json = await res.json();
+
+      if (!res.ok) {
+        setError(json.error || "Could not load analytics.");
+        setLoading(false);
+        return;
+      }
+
       setData(json);
       setLoading(false);
     }
+
     fetchAnalytics();
   }, [slug]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-500">
-        Loading analytics…
-      </div>
+      <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl space-y-5">
+          <div className="h-8 w-40 animate-pulse rounded bg-slate-200" />
+          <div className="h-56 animate-pulse rounded-[2rem] bg-white shadow-lg shadow-slate-200/60" />
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div className="h-80 animate-pulse rounded-[2rem] bg-white shadow-lg shadow-slate-200/60" />
+            <div className="h-80 animate-pulse rounded-[2rem] bg-white shadow-lg shadow-slate-200/60" />
+          </div>
+        </div>
+      </main>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-7xl px-6 py-10">
+  if (error) {
+    return (
+      <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-red-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+            <Link2 size={24} />
+          </div>
+          <h1 className="mt-5 text-2xl font-bold text-slate-950">Analytics unavailable</h1>
+          <p className="mt-2 text-sm text-slate-500">{error}</p>
+          <Link
+            href="/dashboard"
+            className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-slate-950 px-5 text-sm font-bold text-white"
+          >
+            <ArrowLeft size={16} />
+            Back to dashboard
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
-        {/* ===== BREADCRUMB / BACK ===== */}
+  const createdAt = data.link?.createdAt
+    ? new Date(data.link.createdAt).toLocaleDateString()
+    : "Unknown";
+
+  return (
+    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6"
+          className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-950"
         >
           <ArrowLeft size={16} />
-          Back to Dashboard
+          Back to dashboard
         </Link>
 
-        {/* ===== HEADER ===== */}
-        <div className="mb-10">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Link Analytics
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Performance for <span className="font-medium">{slug}</span>
-          </p>
-        </div>
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <p className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
+                <Link2 size={15} />
+                /l/{slug}
+              </p>
+              <h1 className="mt-5 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+                Link analytics
+              </h1>
+              <a
+                href={data.link?.targetUrl}
+                target="_blank"
+                className="mt-3 inline-flex max-w-full items-center gap-2 truncate text-sm font-semibold text-slate-500 hover:text-blue-600"
+              >
+                <span className="truncate">{data.link?.targetUrl}</span>
+                <ExternalLink size={15} className="shrink-0" />
+              </a>
+            </div>
 
-        {/* ===== KPI CARDS ===== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
-          <KpiCard
-            title="Total Clicks"
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
+              <CalendarDays size={16} />
+              Created {createdAt}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-5 sm:grid-cols-2">
+          <MetricCard
+            title="Total clicks"
             value={data.totalClicks}
             icon={MousePointerClick}
-            color="blue"
+            tone="blue"
           />
-          <KpiCard
-            title="Unique Visitors"
+          <MetricCard
+            title="Unique visitors"
             value={data.uniqueVisitors}
             icon={Users}
-            color="teal"
+            tone="teal"
           />
-        </div>
+        </section>
 
-        {/* ===== CLICKS OVER TIME ===== */}
-        <SectionCard title="Clicks Over Time">
-          <ClickLineChart data={data.dailyClicks} />
-        </SectionCard>
+        <Section title="Clicks over time" subtitle="Daily click volume for this short link.">
+          {data.dailyClicks.length === 0 ? (
+            <EmptyChart />
+          ) : (
+            <ClickLineChart data={data.dailyClicks} />
+          )}
+        </Section>
 
-        {/* ===== PIE CHARTS ===== */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10">
-          <SectionCard title="Devices">
+        <section className="grid gap-5 lg:grid-cols-2">
+          <Section title="Devices" subtitle="Mobile and desktop traffic split.">
             <SimplePieChart data={data.deviceCount} />
-          </SectionCard>
-
-          <SectionCard title="Referrers">
+          </Section>
+          <Section title="Referrers" subtitle="Where visitors came from before clicking.">
             <SimplePieChart data={data.referrerCount} />
-          </SectionCard>
-        </div>
+          </Section>
+        </section>
 
-        {/* ===== BREAKDOWN TABLES ===== */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10">
-          <DataTable title="Devices Breakdown" data={data.deviceCount} />
-          <DataTable title="Referrers Breakdown" data={data.referrerCount} />
-        </div>
-
+        <section className="grid gap-5 lg:grid-cols-2">
+          <Breakdown title="Device breakdown" data={data.deviceCount} />
+          <Breakdown title="Referrer breakdown" data={data.referrerCount} />
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
 
-/* ===================== UI COMPONENTS ===================== */
-
-function KpiCard({ title, value, icon: Icon, color }) {
-  const colorMap = {
-    blue: "bg-blue-100 text-blue-600",
-    teal: "bg-teal-100 text-teal-600"
+function MetricCard({ title, value, icon: Icon, tone }) {
+  const toneMap = {
+    blue: "bg-blue-50 text-blue-600",
+    teal: "bg-teal-50 text-teal-600"
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-      <div className="flex items-center justify-between">
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/60">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="text-3xl font-semibold text-gray-900 mt-2">
+          <p className="text-sm font-semibold text-slate-500">{title}</p>
+          <p className="mt-2 text-4xl font-bold text-slate-950">
             {value.toLocaleString()}
           </p>
         </div>
-
-        <div
-          className={`w-12 h-12 rounded-full flex items-center justify-center ${colorMap[color]}`}
-        >
-          <Icon size={20} />
+        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneMap[tone]}`}>
+          <Icon size={22} />
         </div>
       </div>
     </div>
   );
 }
 
-function SectionCard({ title, children }) {
+function Section({ title, subtitle, children }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">
-        {title}
-      </h3>
+    <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">
+      <div className="mb-5">
+        <h2 className="text-lg font-bold text-slate-950">{title}</h2>
+        <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+      </div>
       {children}
     </div>
   );
 }
 
-function DataTable({ title, data }) {
+function Breakdown({ title, data }) {
+  const entries = Object.entries(data || {});
+
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b bg-gray-50">
-        <h3 className="text-sm font-semibold text-gray-900">
-          {title}
-        </h3>
+    <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
+      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
+        <h2 className="text-sm font-bold text-slate-950">{title}</h2>
       </div>
+      {entries.length === 0 ? (
+        <p className="px-6 py-8 text-sm text-slate-500">No data yet.</p>
+      ) : (
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-slate-100">
+            {entries.map(([key, value]) => (
+              <tr key={key}>
+                <td className="px-5 py-4 font-semibold capitalize text-slate-600 sm:px-6">
+                  {key}
+                </td>
+                <td className="px-5 py-4 text-right font-bold text-slate-950 sm:px-6">
+                  {value.toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
 
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 text-gray-500">
-          <tr>
-            <th className="px-6 py-3 text-left font-medium">Name</th>
-            <th className="px-6 py-3 text-right font-medium">Count</th>
-          </tr>
-        </thead>
-
-        <tbody className="divide-y">
-          {Object.entries(data).map(([key, value]) => (
-            <tr key={key} className="hover:bg-gray-50 transition">
-              <td className="px-6 py-3 capitalize text-gray-700">
-                {key}
-              </td>
-              <td className="px-6 py-3 text-right font-medium text-gray-900">
-                {value}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+function EmptyChart() {
+  return (
+    <div className="flex h-[18rem] items-center justify-center rounded-2xl bg-slate-50 text-sm font-medium text-slate-500">
+      No clicks have been recorded yet.
     </div>
   );
 }

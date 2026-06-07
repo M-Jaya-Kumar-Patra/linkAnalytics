@@ -4,21 +4,40 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export async function POST(req) {
   try {
     const { name, email, password } = await req.json();
+    const normalizedEmail = email?.trim().toLowerCase();
+    const trimmedName = name?.trim();
 
-    if (!name || !email || !password) {
+    if (!trimmedName || !normalizedEmail || !password) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
       );
     }
 
+    if (!isValidEmail(normalizedEmail)) {
+      return NextResponse.json(
+        { error: "Enter a valid email address" },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters" },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return NextResponse.json(
         { error: "User already exists" },
@@ -26,13 +45,11 @@ export async function POST(req) {
       );
     }
 
-    // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user
     await User.create({
-      name,
-      email,
+      name: trimmedName,
+      email: normalizedEmail,
       passwordHash,
       provider: "credentials"
     });
@@ -40,9 +57,6 @@ export async function POST(req) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Signup error:", err);
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
