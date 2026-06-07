@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, BarChart3, Link2, Lock, Mail, Sparkles } from "lucide-react";
 
 export default function LoginClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const authError = searchParams.get("error");
+  const [error, setError] = useState(
+    authError ? "Authentication failed. Check your provider settings and try again." : ""
+  );
 
   async function handleLogin(e) {
     e.preventDefault();
